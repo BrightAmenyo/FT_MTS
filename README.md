@@ -298,4 +298,4 @@ script.js               # JavaScript functionality
 **Version**: 1.0  
 **Last Updated**: September 2025  
 **License**: Personal Use  
-**Author**: Cascade AI Assistant
+**Author**: Bright Amenyo
