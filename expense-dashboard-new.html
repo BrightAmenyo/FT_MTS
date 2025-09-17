@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceTracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .date-filter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .date-filter label {
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .date-filter select,
+        .date-filter input {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        /* Summary Cards Grid */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-edit-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: transparent;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .summary-card:hover .card-edit-btn {
+            opacity: 1;
+        }
+
+        .card-edit-btn:hover {
+            background: #f1f5f9;
+            color: #0891b2;
+        }
+
+        .card-amount-editable {
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .card-amount-editable:hover {
+            background-color: #f8fafc;
+        }
+
+        .card-amount-input {
+            background: transparent;
+            border: 2px solid #0891b2;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: inherit;
+            font-weight: inherit;
+            color: inherit;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .card-icon {
+            font-size: 1.2rem;
+        }
+
+        .card-header h3 {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .card-amount {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .balance-card .card-amount {
+            color: #1e293b;
+        }
+
+        .income-card .card-amount {
+            color: #059669;
+        }
+
+        .expense-card .card-amount {
+            color: #dc2626;
+        }
+
+        .bills-card .card-amount {
+            color: #d97706;
+        }
+
+        .card-trend {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.875rem;
+        }
+
+        .card-trend.positive {
+            color: #059669;
+        }
+
+        .card-trend.negative {
+            color: #dc2626;
+        }
+
+        .card-info {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        /* Charts Section */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+
+        .chart-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .chart-header h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .chart-container {
+            height: 300px;
+            position: relative;
+            width: 100%;
+        }
+
+        .chart-container canvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .monthly-trends {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding-top: 20px;
+        }
+
+        .trend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .trend-item.current {
+            background: #dcfce7;
+            border: 1px solid #bbf7d0;
+        }
+
+        .trend-label {
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .trend-value {
+            font-weight: 600;
+        }
+
+        .trend-value.positive {
+            color: #059669;
+        }
+
+        /* Overview Section */
+        .overview-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+            margin-bottom: 30px;
+        }
+
+        .overview-card h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 20px;
+        }
+
+        .overview-chart {
+            height: 200px;
+            position: relative;
+        }
+
+        /* Floating Add Button */
+        .floating-add-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .floating-add-btn:hover {
+            background: #2563eb;
+            transform: scale(1.1);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 2% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .close {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .close:hover {
+            color: #1e293b;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        /* Budget Settings Styles */
+        .budget-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .budget-section h4 {
+            margin: 0 0 15px 0;
+            color: #1e293b;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 8px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .budget-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .budget-item {
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .budget-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .budget-category {
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .budget-amount {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .show-budget-section {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #0891b2;
+            border: 2px solid #0891b2;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-outline:hover {
+            background: #0891b2;
+            color: white;
+        }
+
+
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .floating-add-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>💰 FinanceTracker</h1>
+            </div>
+            <div class="date-filter">
+                <label for="monthFilter">Filter by Month:</label>
+                <select id="monthFilter">
+                    <option value="all">All Time</option>
+                    <option value="current">Current Month</option>
+                </select>
+                <input type="month" id="customMonthFilter" style="margin-left: 10px;">
+            </div>
+        </div>
+
+
+            <!-- Summary Cards -->
+            <div class="summary-grid">
+            <div class="summary-card balance-card">
+                <button class="card-edit-btn" onclick="window.tracker && window.tracker.editCardValue('balance')" title="Edit Balance">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <div class="card-header">
+                    <div class="card-icon">💰</div>
+                    <h3>Total Balance</h3>
+                </div>
+                <div class="card-amount card-amount-editable" id="totalBalance" onclick="window.tracker && window.tracker.editCardValue('balance')">$2,994.50</div>
+                <div class="card-trend positive">
+                    <i class="fas fa-arrow-up"></i> +93.6% from last month
+                </div>
+            </div>
+
+            <div class="summary-card income-card">
+                <button class="card-edit-btn" onclick="window.tracker && window.tracker.editCardValue('income')" title="Edit Income">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <div class="card-header">
+                    <div class="card-icon">📈</div>
+                    <h3>Total Income</h3>
+                </div>
+                <div class="card-amount card-amount-editable" id="totalIncome" onclick="window.tracker && window.tracker.editCardValue('income')">$3,200.00</div>
+                <div class="card-trend positive">
+                    <i class="fas fa-arrow-up"></i> +8.2% from last month
+                </div>
+            </div>
+
+            <div class="summary-card expenses-card">
+                <button class="card-edit-btn" onclick="window.tracker && window.tracker.editCardValue('expenses')" title="Edit Expenses">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <div class="card-header">
+                    <div class="card-icon">📊</div>
+                    <h3>Total Expenses</h3>
+                </div>
+                <div class="card-amount card-amount-editable" id="totalExpenses" onclick="window.tracker && window.tracker.editCardValue('expenses')">$1,205.50</div>
+                <div class="card-trend negative">
+                    <i class="fas fa-arrow-down"></i> -3.5% from last month
+                </div>
+            </div>
+
+            <div class="summary-card bills-card">
+                <button class="card-edit-btn" onclick="window.tracker && window.tracker.editCardValue('bills')" title="Edit Bills & Debts">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <div class="card-header">
+                    <div class="card-icon">⚠️</div>
+                    <h3>Bills & Debts</h3>
+                </div>
+                <div class="card-amount card-amount-editable" id="billsAndDebts" onclick="window.tracker && window.tracker.editCardValue('bills')">$850.00</div>
+                <div class="card-info">
+                    2 upcoming bills this month
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-icon">⏰</div>
+                    <h3>Spending Breakdown</h3>
+                </div>
+                <div class="chart-container">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div class="chart-icon">📈</div>
+                    <h3>Monthly Trends</h3>
+                </div>
+                <div class="monthly-trends">
+                    <div class="trend-item current">
+                        <span class="trend-label">This Month</span>
+                        <span class="trend-value positive">+12.5%</span>
+                    </div>
+                    <div class="trend-item">
+                        <span class="trend-label">Last Month</span>
+                        <span class="trend-value">$2,847</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Overview -->
+        <div class="overview-card">
+            <h3>Monthly Overview</h3>
+            <div class="chart-container">
+                <canvas id="budgetActualChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Budget Settings Card -->
+        <div class="overview-card" id="budgetSettingsCard" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3>Budget Settings</h3>
+                <div>
+                    <button class="btn btn-secondary" id="hideBudgetBtn" style="margin-right: 10px;">
+                        <i class="fas fa-eye-slash"></i> Hide
+                    </button>
+                    <button class="btn btn-primary" id="editBudgetBtn">
+                        <i class="fas fa-edit"></i> Edit Budget
+                    </button>
+                </div>
+            </div>
+            <div class="budget-summary" id="budgetSummary">
+                <!-- Budget summary will be populated here -->
+            </div>
+        </div>
+
+        <!-- Show Budget Settings Button (when hidden) -->
+        <div class="show-budget-section" id="showBudgetSection">
+            <button class="btn btn-outline" id="showBudgetBtn">
+                <i class="fas fa-cog"></i> Show Budget Settings
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Floating Add Button -->
+    <button class="floating-add-btn" id="addTransactionBtn">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Add Transaction Modal -->
+    <div id="addTransactionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Transaction</h3>
+                <span class="close">&times;</span>
+            </div>
+            <form id="addTransactionForm">
+                <div class="form-group">
+                    <label>Type:</label>
+                    <select id="transactionType" required>
+                        <option value="">Select Type</option>
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                        <option value="bill">Bill</option>
+                        <option value="debt">Debt</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Category:</label>
+                    <select id="transactionCategory" required>
+                        <option value="">Select Category</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount ($):</label>
+                    <input type="number" id="transactionAmount" required min="0" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Description:</label>
+                    <input type="text" id="transactionDescription" required>
+                </div>
+                <div class="form-group">
+                    <label>Date:</label>
+                    <input type="date" id="transactionDate" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelTransaction">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Transaction</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Budget Settings Modal -->
+    <div id="budgetSettingsModal" class="modal">
+        <div class="modal-content" style="max-width: 600px; max-height: 85vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3>Budget Settings</h3>
+                <span class="close">&times;</span>
+            </div>
+            <form id="budgetSettingsForm">
+                <div class="budget-section">
+                    <h4>Income & Goals</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Monthly Income ($):</label>
+                            <input type="number" id="incomeBudget" min="0" step="0.01" placeholder="3000">
+                        </div>
+                        <div class="form-group">
+                            <label>Savings Goal ($):</label>
+                            <input type="number" id="savingsBudget" min="0" step="0.01" placeholder="400">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="budget-section">
+                    <h4>Expense Categories</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Housing ($):</label>
+                            <input type="number" id="housingBudget" min="0" step="0.01" placeholder="800">
+                        </div>
+                        <div class="form-group">
+                            <label>Food ($):</label>
+                            <input type="number" id="foodBudget" min="0" step="0.01" placeholder="400">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Transportation ($):</label>
+                            <input type="number" id="transportationBudget" min="0" step="0.01" placeholder="200">
+                        </div>
+                        <div class="form-group">
+                            <label>Entertainment ($):</label>
+                            <input type="number" id="entertainmentBudget" min="0" step="0.01" placeholder="150">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Healthcare ($):</label>
+                            <input type="number" id="healthcareBudget" min="0" step="0.01" placeholder="100">
+                        </div>
+                        <div class="form-group">
+                            <label>Utilities ($):</label>
+                            <input type="number" id="utilitiesBudget" min="0" step="0.01" placeholder="150">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Other Expenses ($):</label>
+                            <input type="number" id="otherBudget" min="0" step="0.01" placeholder="200">
+                        </div>
+                        <div class="form-group">
+                            <label>Bills ($):</label>
+                            <input type="number" id="billsBudget" min="0" step="0.01" placeholder="300">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="budget-section">
+                    <h4>Debt & Payments</h4>
+                    <div class="form-group">
+                        <label>Monthly Debt Payment ($):</label>
+                        <input type="number" id="debtBudget" min="0" step="0.01" placeholder="800">
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelBudget">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveBudgetBtn">Save Budget</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Simple expense tracker functionality
+        class ExpenseTracker {
+            constructor() {
+                this.transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+                this.budgets = JSON.parse(localStorage.getItem('budgets')) || this.getDefaultBudgets();
+                this.currentMonth = new Date().getMonth();
+                this.currentYear = new Date().getFullYear();
+                this.filterMonth = null; // null means current month, 'all' means all time
+                this.filterYear = null;
+                
+                this.expenseChart = null;
+                this.budgetActualChart = null;
+                
+                this.init();
+            }
+
+            getDefaultBudgets() {
+                return {
+                    income: 3000,
+                    housing: 800,
+                    food: 400,
+                    transportation: 200,
+                    entertainment: 150,
+                    healthcare: 100,
+                    utilities: 150,
+                    other: 200,
+                    bills: 300,
+                    debt: 800,
+                    savings: 400
+                };
+            }
+
+
+            init() {
+                this.setupEventListeners();
+                this.updateDashboard();
+                this.initializeCharts();
+                this.updateBudgetSummary();
+                this.loadBudgetVisibilityPreference();
+                
+                // Set current date
+                const today = new Date();
+                const dateInput = document.getElementById('transactionDate');
+                if (dateInput) {
+                    dateInput.value = today.toISOString().split('T')[0];
+                }
+            }
+
+            setupEventListeners() {
+                // Add transaction form
+                const addTransactionForm = document.getElementById('addTransactionForm');
+                if (addTransactionForm) {
+                    addTransactionForm.addEventListener('submit', (e) => this.addTransaction(e));
+                }
+
+                // Floating add button
+                const addTransactionBtn = document.getElementById('addTransactionBtn');
+                if (addTransactionBtn) {
+                    addTransactionBtn.addEventListener('click', () => this.openModal('addTransactionModal'));
+                }
+
+                // Close modal buttons
+                document.querySelectorAll('.close').forEach(closeBtn => {
+                    closeBtn.addEventListener('click', (e) => {
+                        const modal = e.target.closest('.modal');
+                        if (modal) {
+                            this.closeModal(modal.id);
+                        }
+                    });
+                });
+
+                // Close modal when clicking outside
+                window.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('modal')) {
+                        this.closeModal(e.target.id);
+                    }
+                });
+
+                // Budget settings form
+                const budgetForm = document.getElementById('budgetSettingsForm');
+                if (budgetForm) {
+                    budgetForm.addEventListener('submit', (e) => this.saveBudgetSettings(e));
+                }
+
+                // Budget settings modal controls
+                const editBudgetBtn = document.getElementById('editBudgetBtn');
+                if (editBudgetBtn) {
+                    editBudgetBtn.addEventListener('click', () => this.openModal('budgetSettingsModal'));
+                }
+
+                const hideBudgetBtn = document.getElementById('hideBudgetBtn');
+                if (hideBudgetBtn) {
+                    hideBudgetBtn.addEventListener('click', () => this.hideBudgetSettings());
+                }
+
+                const showBudgetBtn = document.getElementById('showBudgetBtn');
+                if (showBudgetBtn) {
+                    showBudgetBtn.addEventListener('click', () => this.showBudgetSettings());
+                }
+
+                // Modal controls - Budget Modal
+                const budgetCloseBtn = document.getElementById('budgetSettingsModal')?.querySelector('.close');
+                const cancelBudgetBtn = document.getElementById('cancelBudget');
+                
+                if (budgetCloseBtn) {
+                    budgetCloseBtn.addEventListener('click', () => this.closeModal('budgetSettingsModal'));
+                }
+                
+                if (cancelBudgetBtn) {
+                    cancelBudgetBtn.addEventListener('click', () => this.closeModal('budgetSettingsModal'));
+                }
+
+                // Date filter controls
+                const monthFilter = document.getElementById('monthFilter');
+                const customMonthFilter = document.getElementById('customMonthFilter');
+                
+                if (monthFilter) {
+                    monthFilter.addEventListener('change', () => this.handleMonthFilterChange());
+                }
+                
+                if (customMonthFilter) {
+                    customMonthFilter.addEventListener('change', () => this.handleCustomMonthChange());
+                }
+                
+                // Initialize month filter
+                this.initializeMonthFilter();
+
+                // Transaction type change
+                const transactionType = document.getElementById('transactionType');
+                if (transactionType) {
+                    transactionType.addEventListener('change', () => this.updateCategoryOptions());
+                }
+
+                // Close modals on outside click
+                const transactionModal = document.getElementById('addTransactionModal');
+                const budgetModal = document.getElementById('budgetSettingsModal');
+                
+                if (transactionModal) {
+                    transactionModal.addEventListener('click', (e) => {
+                        if (e.target === transactionModal) {
+                            this.closeModal('addTransactionModal');
+                        }
+                    });
+                }
+
+                if (budgetModal) {
+                    budgetModal.addEventListener('click', (e) => {
+                        if (e.target === budgetModal) {
+                            this.closeModal('budgetSettingsModal');
+                        }
+                    });
+                }
+                
+                // Cancel buttons
+                const cancelTransactionBtn = document.getElementById('cancelTransaction');
+                if (cancelTransactionBtn) {
+                    cancelTransactionBtn.addEventListener('click', () => this.closeModal('addTransactionModal'));
+                }
+
+            }
+
+            openModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.style.display = 'block';
+                    if (modalId === 'addTransactionModal') {
+                        this.updateCategoryOptions();
+                    } else if (modalId === 'budgetSettingsModal') {
+                        this.loadBudgetSettings();
+                    }
+                }
+            }
+
+            closeModal(modalId) {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            }
+
+            toggleBudgetSettings(show) {
+                if (show) {
+                    this.showBudgetSettings();
+                } else {
+                    this.hideBudgetSettings();
+                }
+            }
+
+            showAddTransactionModal() {
+                this.openModal('addTransactionModal');
+            }
+
+            showBudgetSettingsModal() {
+                const modal = document.getElementById('budgetSettingsModal');
+                if (modal) {
+                    modal.style.display = 'block';
+                    this.loadBudgetSettings();
+                }
+            }
+
+            loadBudgetSettings() {
+                // Load current budget values into the form
+                document.getElementById('incomeBudget').value = this.budgets.income || 0;
+                document.getElementById('savingsBudget').value = this.budgets.savings || 0;
+                document.getElementById('housingBudget').value = this.budgets.housing || 0;
+                document.getElementById('foodBudget').value = this.budgets.food || 0;
+                document.getElementById('transportationBudget').value = this.budgets.transportation || 0;
+                document.getElementById('entertainmentBudget').value = this.budgets.entertainment || 0;
+                document.getElementById('healthcareBudget').value = this.budgets.healthcare || 0;
+                document.getElementById('utilitiesBudget').value = this.budgets.utilities || 0;
+                document.getElementById('otherBudget').value = this.budgets.other || 0;
+                document.getElementById('billsBudget').value = this.budgets.bills || 0;
+                document.getElementById('debtBudget').value = this.budgets.debt || 0;
+            }
+
+            saveBudgetSettings(e) {
+                e.preventDefault();
+                
+                console.log('Saving budget settings...');
+                
+                // Get form values
+                this.budgets = {
+                    income: parseFloat(document.getElementById('incomeBudget').value) || 0,
+                    savings: parseFloat(document.getElementById('savingsBudget').value) || 0,
+                    housing: parseFloat(document.getElementById('housingBudget').value) || 0,
+                    food: parseFloat(document.getElementById('foodBudget').value) || 0,
+                    transportation: parseFloat(document.getElementById('transportationBudget').value) || 0,
+                    entertainment: parseFloat(document.getElementById('entertainmentBudget').value) || 0,
+                    healthcare: parseFloat(document.getElementById('healthcareBudget').value) || 0,
+                    utilities: parseFloat(document.getElementById('utilitiesBudget').value) || 0,
+                    other: parseFloat(document.getElementById('otherBudget').value) || 0,
+                    bills: parseFloat(document.getElementById('billsBudget').value) || 0,
+                    debt: parseFloat(document.getElementById('debtBudget').value) || 0
+                };
+
+                console.log('New budgets:', this.budgets);
+
+                // Save to localStorage
+                this.saveToStorage();
+                
+                // Update dashboard and charts
+                this.updateDashboard();
+                this.updateCharts();
+                this.updateBudgetSummary();
+                
+                // Close modal
+                this.closeModal('budgetSettingsModal');
+                
+                // Show success message
+                this.showNotification('Budget settings saved successfully!', 'success');
+            }
+
+            updateBudgetSummary() {
+                const container = document.getElementById('budgetSummary');
+                if (!container) return;
+
+                const totalExpenses = this.budgets.housing + this.budgets.food + 
+                    this.budgets.transportation + this.budgets.entertainment + 
+                    this.budgets.healthcare + this.budgets.utilities + this.budgets.other;
+
+                container.innerHTML = `
+                    <div class="budget-item">
+                        <div class="budget-item-header">
+                            <span class="budget-category">Monthly Income</span>
+                            <span class="budget-amount">$${this.budgets.income.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <div class="budget-item">
+                        <div class="budget-item-header">
+                            <span class="budget-category">Total Expenses</span>
+                            <span class="budget-amount">$${totalExpenses.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <div class="budget-item">
+                        <div class="budget-item-header">
+                            <span class="budget-category">Bills</span>
+                            <span class="budget-amount">$${this.budgets.bills.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <div class="budget-item">
+                        <div class="budget-item-header">
+                            <span class="budget-category">Debt Payment</span>
+                            <span class="budget-amount">$${this.budgets.debt.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <div class="budget-item">
+                        <div class="budget-item-header">
+                            <span class="budget-category">Savings Goal</span>
+                            <span class="budget-amount">$${this.budgets.savings.toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            initializeMonthFilter() {
+                const monthFilter = document.getElementById('monthFilter');
+                const customMonthFilter = document.getElementById('customMonthFilter');
+                
+                // Set current month as default
+                const currentDate = new Date();
+                const currentMonthStr = currentDate.getFullYear() + '-' + String(currentDate.getMonth() + 1).padStart(2, '0');
+                
+                if (customMonthFilter) {
+                    customMonthFilter.value = currentMonthStr;
+                }
+                
+                if (monthFilter) {
+                    monthFilter.value = 'current';
+                }
+                
+                // Populate month filter with available months from transactions
+                this.populateMonthOptions();
+            }
+
+            populateMonthOptions() {
+                const monthFilter = document.getElementById('monthFilter');
+                if (!monthFilter) return;
+                
+                // Get unique months from transactions
+                const months = new Set();
+                this.transactions.forEach(transaction => {
+                    const date = new Date(transaction.date);
+                    const monthKey = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+                    const monthLabel = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                    months.add(JSON.stringify({ key: monthKey, label: monthLabel }));
+                });
+                
+                // Clear existing options except default ones
+                const defaultOptions = monthFilter.querySelectorAll('option[value="all"], option[value="current"]');
+                monthFilter.innerHTML = '';
+                defaultOptions.forEach(option => monthFilter.appendChild(option));
+                
+                // Add month options
+                Array.from(months).sort().reverse().forEach(monthStr => {
+                    const month = JSON.parse(monthStr);
+                    const option = document.createElement('option');
+                    option.value = month.key;
+                    option.textContent = month.label;
+                    monthFilter.appendChild(option);
+                });
+            }
+
+            handleMonthFilterChange() {
+                const monthFilter = document.getElementById('monthFilter');
+                const customMonthFilter = document.getElementById('customMonthFilter');
+                
+                if (!monthFilter) return;
+                
+                const selectedValue = monthFilter.value;
+                
+                if (selectedValue === 'all') {
+                    this.filterMonth = 'all';
+                    this.filterYear = 'all';
+                    if (customMonthFilter) customMonthFilter.style.display = 'none';
+                } else if (selectedValue === 'current') {
+                    this.filterMonth = null;
+                    this.filterYear = null;
+                    if (customMonthFilter) customMonthFilter.style.display = 'none';
+                } else {
+                    // Specific month selected
+                    const [year, month] = selectedValue.split('-');
+                    this.filterMonth = parseInt(month) - 1; // Convert to 0-based month
+                    this.filterYear = parseInt(year);
+                    if (customMonthFilter) {
+                        customMonthFilter.value = selectedValue;
+                        customMonthFilter.style.display = 'inline-block';
+                    }
+                }
+                
+                this.updateDashboard();
+                this.updateCharts();
+                this.updateBudgetSummary();
+            }
+
+            handleCustomMonthChange() {
+                const customMonthFilter = document.getElementById('customMonthFilter');
+                const monthFilter = document.getElementById('monthFilter');
+                
+                if (!customMonthFilter || !customMonthFilter.value) return;
+                
+                const [year, month] = customMonthFilter.value.split('-');
+                this.filterMonth = parseInt(month) - 1; // Convert to 0-based month
+                this.filterYear = parseInt(year);
+                
+                // Update main filter to show custom selection
+                if (monthFilter) {
+                    monthFilter.value = customMonthFilter.value;
+                }
+                
+                this.updateDashboard();
+                this.updateCharts();
+                this.updateBudgetSummary();
+            }
+
+            getFilteredTransactions() {
+                if (this.filterMonth === 'all') {
+                    return this.transactions;
+                }
+                
+                const targetMonth = this.filterMonth !== null ? this.filterMonth : this.currentMonth;
+                const targetYear = this.filterYear !== null ? this.filterYear : this.currentYear;
+                
+                return this.transactions.filter(transaction => {
+                    const transactionDate = new Date(transaction.date);
+                    return transactionDate.getMonth() === targetMonth && 
+                           transactionDate.getFullYear() === targetYear;
+                });
+            }
+
+            showBudgetSettings() {
+                const budgetCard = document.getElementById('budgetSettingsCard');
+                const showSection = document.getElementById('showBudgetSection');
+                
+                if (budgetCard) budgetCard.style.display = 'block';
+                if (showSection) showSection.style.display = 'none';
+                
+                // Save preference
+                localStorage.setItem('budgetSettingsVisible', 'true');
+            }
+
+            hideBudgetSettings() {
+                const budgetCard = document.getElementById('budgetSettingsCard');
+                const showSection = document.getElementById('showBudgetSection');
+                
+                if (budgetCard) budgetCard.style.display = 'none';
+                if (showSection) showSection.style.display = 'block';
+                
+                // Save preference
+                localStorage.setItem('budgetSettingsVisible', 'false');
+            }
+
+            loadBudgetVisibilityPreference() {
+                const isVisible = localStorage.getItem('budgetSettingsVisible');
+                
+                if (isVisible === 'false') {
+                    this.hideBudgetSettings();
+                } else {
+                    // Default to hidden initially
+                    this.hideBudgetSettings();
+                }
+            }
+
+            editCardValue(cardType) {
+                const cardMap = {
+                    'balance': 'totalBalance',
+                    'income': 'totalIncome', 
+                    'expenses': 'totalExpenses',
+                    'bills': 'billsAndDebts'
+                };
+                
+                const elementId = cardMap[cardType];
+                const element = document.getElementById(elementId);
+                if (!element) return;
+                
+                const currentValue = parseFloat(element.textContent.replace(/[$,]/g, '')) || 0;
+                
+                // Create input element
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.step = '0.01';
+                input.value = currentValue;
+                input.style.width = '100%';
+                input.style.padding = '4px';
+                input.style.border = '2px solid #0891b2';
+                input.style.borderRadius = '4px';
+                input.style.fontSize = '1.5rem';
+                input.style.fontWeight = '600';
+                input.style.textAlign = 'center';
+                
+                // Replace element content
+                element.innerHTML = '';
+                element.appendChild(input);
+                input.focus();
+                input.select();
+                
+                const saveValue = () => {
+                    const newValue = parseFloat(input.value) || 0;
+                    if (newValue !== currentValue) {
+                        this.saveCardValue(cardType, newValue);
+                    } else {
+                        element.innerHTML = this.formatCurrency(currentValue);
+                    }
+                };
+                
+                input.addEventListener('blur', saveValue);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        saveValue();
+                    } else if (e.key === 'Escape') {
+                        element.innerHTML = this.formatCurrency(currentValue);
+                    }
+                });
+            }
+
+            saveCardValue(cardType, value) {
+                // Remove any existing manual adjustment for this card type
+                this.transactions = this.transactions.filter(t => 
+                    !(t.isManualAdjustment && t.category === `Manual ${cardType} adjustment`)
+                );
+                
+                // Add new manual adjustment transaction
+                const transaction = {
+                    id: Date.now().toString(),
+                    type: cardType === 'expenses' || cardType === 'bills' ? 'expense' : 'income',
+                    category: `Manual ${cardType} adjustment`,
+                    amount: value,
+                    description: `Manual adjustment for ${cardType}`,
+                    date: new Date().toISOString().split('T')[0],
+                    createdAt: new Date().toISOString(),
+                    isManualAdjustment: true
+                };
+                
+                this.transactions.push(transaction);
+                this.saveToStorage();
+                this.updateDashboard();
+                this.updateCharts();
+                this.showNotification(`${cardType.charAt(0).toUpperCase() + cardType.slice(1)} updated successfully!`, 'success');
+            }
+
+            showNotification(message, type = 'success') {
+                // Simple notification - you can enhance this
+                alert(message);
+            }
+
+            updateCategoryOptions() {
+                const typeSelect = document.getElementById('transactionType');
+                const categorySelect = document.getElementById('transactionCategory');
+                
+                if (!typeSelect || !categorySelect) return;
+                
+                const type = typeSelect.value;
+                categorySelect.innerHTML = '<option value="">Select Category</option>';
+                
+                let options = [];
+                switch(type) {
+                    case 'income':
+                        options = ['Salary', 'Freelance', 'Investment', 'Other Income'];
+                        break;
+                    case 'expense':
+                        options = ['Housing', 'Food & Dining', 'Transportation', 'Entertainment', 'Healthcare', 'Shopping', 'Other'];
+                        break;
+                    case 'bill':
+                        options = ['Internet', 'Phone', 'Electricity', 'Water', 'Gas', 'Insurance', 'Subscription'];
+                        break;
+                    case 'debt':
+                        options = ['Student Loan', 'Credit Card', 'Mortgage', 'Personal Loan'];
+                        break;
+                }
+                
+                options.forEach(option => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = option;
+                    optionElement.textContent = option;
+                    categorySelect.appendChild(optionElement);
+                });
+            }
+
+            formatCurrency(amount) {
+                return `$${amount.toFixed(2)}`;
+            }
+
+            addTransaction(e) {
+                e.preventDefault();
+                
+                const type = document.getElementById('transactionType').value;
+                const category = document.getElementById('transactionCategory').value;
+                const amount = parseFloat(document.getElementById('transactionAmount').value);
+                const description = document.getElementById('transactionDescription').value;
+                const date = document.getElementById('transactionDate').value;
+                
+                const transaction = {
+                    id: Date.now().toString(),
+                    type,
+                    category,
+                    amount,
+                    description,
+                    date,
+                    createdAt: new Date().toISOString()
+                };
+                
+                this.transactions.push(transaction);
+                this.saveToStorage();
+                this.updateDashboard();
+                this.updateCharts();
+                this.closeModal('addTransactionModal');
+                
+                // Reset form
+                document.getElementById('addTransactionForm').reset();
+                document.getElementById('transactionDate').value = new Date().toISOString().split('T')[0];
+            }
+
+            saveToStorage() {
+                localStorage.setItem('transactions', JSON.stringify(this.transactions));
+                localStorage.setItem('budgets', JSON.stringify(this.budgets));
+            }
+
+            updateDashboard() {
+                const totals = this.calculateTotals();
+                const balance = totals.income - totals.expenses - totals.bills - totals.debt;
+                
+                // Update summary cards
+                const totalBalanceEl = document.getElementById('totalBalance');
+                const totalIncomeEl = document.getElementById('totalIncome');
+                const totalExpensesEl = document.getElementById('totalExpenses');
+                const billsAndDebtsEl = document.getElementById('billsAndDebts');
+                
+                if (totalBalanceEl) totalBalanceEl.textContent = `$${balance.toFixed(2)}`;
+                if (totalIncomeEl) totalIncomeEl.textContent = `$${totals.income.toFixed(2)}`;
+                if (totalExpensesEl) totalExpensesEl.textContent = `$${totals.expenses.toFixed(2)}`;
+                if (billsAndDebtsEl) billsAndDebtsEl.textContent = `$${(totals.bills + totals.debt).toFixed(2)}`;
+            }
+
+            calculateTotals() {
+                const currentTransactions = this.getFilteredTransactions();
+                
+                const income = currentTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+                const expenses = currentTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+                const bills = currentTransactions.filter(t => t.type === 'bill').reduce((sum, t) => sum + t.amount, 0);
+                const debt = currentTransactions.filter(t => t.type === 'debt').reduce((sum, t) => sum + t.amount, 0);
+                
+                return { income, expenses, bills, debt };
+            }
+
+            getCurrentMonthTransactions() {
+                return this.getFilteredTransactions();
+            }
+
+            initializeCharts() {
+                // Check if Chart.js is loaded
+                if (typeof Chart === 'undefined') {
+                    console.error('Chart.js is not loaded');
+                    return;
+                }
+
+                // Wait for DOM to be fully ready
+                setTimeout(() => {
+                    try {
+                        // Expense Chart (Doughnut)
+                        const expenseCtx = document.getElementById('expenseChart');
+                        if (expenseCtx) {
+                            const ctx = expenseCtx.getContext('2d');
+                            if (this.expenseChart) {
+                                this.expenseChart.destroy();
+                            }
+                            this.expenseChart = new Chart(ctx, {
+                                type: 'doughnut',
+                                data: {
+                                    labels: ['Food & Dining', 'Transportation', 'Entertainment', 'Shopping', 'Other'],
+                                    datasets: [{
+                                        data: [300, 150, 100, 200, 50],
+                                        backgroundColor: ['#0891b2', '#06b6d4', '#67e8f9', '#a7f3d0', '#fde047'],
+                                        borderWidth: 2,
+                                        borderColor: '#ffffff'
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: {
+                                            position: 'bottom',
+                                            labels: {
+                                                padding: 15,
+                                                usePointStyle: true,
+                                                font: {
+                                                    size: 12
+                                                }
+                                            }
+                                        }
+                                    },
+                                    cutout: '60%'
+                                }
+                            });
+                        }
+
+                        // Budget vs Actual Chart (Bar)
+                        const budgetCtx = document.getElementById('budgetActualChart');
+                        if (budgetCtx) {
+                            const ctx2 = budgetCtx.getContext('2d');
+                            if (this.budgetActualChart) {
+                                this.budgetActualChart.destroy();
+                            }
+                            this.budgetActualChart = new Chart(ctx2, {
+                                type: 'bar',
+                                data: {
+                                    labels: ['Income', 'Expenses', 'Bills'],
+                                    datasets: [{
+                                        label: 'Budget',
+                                        data: [3200, 1500, 850],
+                                        backgroundColor: '#e2e8f0'
+                                    }, {
+                                        label: 'Actual',
+                                        data: [3200, 1205.50, 850],
+                                        backgroundColor: '#0891b2'
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            ticks: {
+                                                callback: function(value) {
+                                                    return '$' + value.toLocaleString();
+                                                }
+                                            }
+                                        }
+                                    },
+                                    plugins: {
+                                        legend: {
+                                            position: 'top',
+                                            labels: {
+                                                font: {
+                                                    size: 12
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+
+                        console.log('Charts initialized successfully');
+                        this.updateCharts();
+                    } catch (error) {
+                        console.error('Error initializing charts:', error);
+                    }
+                }, 500);
+            }
+
+            updateCharts() {
+                this.updateExpenseChart();
+                this.updateBudgetActualChart();
+            }
+
+            updateExpenseChart() {
+                if (!this.expenseChart) return;
+                
+                const expenseTransactions = this.getCurrentMonthTransactions().filter(t => t.type === 'expense');
+                const expensesByCategory = {};
+                
+                expenseTransactions.forEach(t => {
+                    expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + t.amount;
+                });
+                
+                const labels = Object.keys(expensesByCategory);
+                const data = Object.values(expensesByCategory);
+                
+                if (labels.length === 0) {
+                    labels.push('Food & Dining');
+                    data.push(100);
+                }
+                
+                this.expenseChart.data.labels = labels;
+                this.expenseChart.data.datasets[0].data = data;
+                this.expenseChart.update();
+            }
+
+            updateBudgetActualChart() {
+                if (!this.budgetActualChart) return;
+                
+                const totals = this.calculateTotals();
+                
+                // Calculate total expense budget from individual categories
+                const totalExpenseBudget = this.budgets.housing + this.budgets.food + 
+                    this.budgets.transportation + this.budgets.entertainment + 
+                    this.budgets.healthcare + this.budgets.utilities + this.budgets.other;
+                
+                const budgetData = [this.budgets.income, totalExpenseBudget, this.budgets.bills];
+                const actualData = [totals.income, totals.expenses, totals.bills];
+                
+                this.budgetActualChart.data.datasets[0].data = budgetData;
+                this.budgetActualChart.data.datasets[1].data = actualData;
+                this.budgetActualChart.update();
+            }
+        }
+
+        // Initialize tracker when page loads
+        window.tracker = null;
+        document.addEventListener('DOMContentLoaded', () => {
+            window.tracker = new ExpenseTracker();
+        });
+    </script>
+</body>
+</html>
